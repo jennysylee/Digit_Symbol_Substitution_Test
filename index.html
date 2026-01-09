@@ -181,7 +181,10 @@
             if (appState === 'INSTRUCTIONS') return (
                 <div className="min-h-screen flex items-center justify-center p-4">
                     <div className="max-w-xl bg-white p-8 rounded-2xl shadow-2xl border border-slate-200">
-                        <h1 className="text-3xl font-black text-slate-800 mb-6 text-center">Digit Symbol Substitution</h1>
+                        <h1 className="text-3xl font-black text-slate-800 mb-4 text-center">Digit Symbol Substitution</h1>
+                        <div className="bg-blue-50 p-4 rounded-xl mb-6 text-sm text-blue-800 leading-tight">
+                            <strong>Task Description:</strong> This experiment measures processing speed and associative memory. You must match numbers to symbols using the key provided. It is a common tool in neuropsychology to assess cognitive efficiency.
+                        </div>
                         <p className="text-slate-600 text-lg mb-6">Match the symbols to the digits as quickly as possible. We will start with <strong>{TRAINING_TRIALS} practice trials</strong>.</p>
                         <button onClick={startSession} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95">START PRACTICE</button>
                     </div>
@@ -190,20 +193,20 @@
 
             if (appState === 'TRANSITION') return (
                 <div className="min-h-screen flex items-center justify-center p-4 text-center">
-                    <div className="max-w-md bg-white p-10 rounded-3xl shadow-2xl border border-blue-100">
+                    <div className="max-w-md bg-white p-10 rounded-3xl shadow-2xl border-4 border-green-500">
                         <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                             <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                         </div>
-                        <h2 className="text-3xl font-black text-slate-800 mb-4">Practice Complete!</h2>
-                        <p className="text-slate-600 text-lg mb-8">The practice trials are over. Are you ready for the actual test? It will last for 2 minutes.</p>
-                        <button onClick={startActualTest} className="w-full bg-green-600 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-green-700 transition-all active:scale-95 text-xl tracking-tight">START ACTUAL TEST</button>
+                        <h2 className="text-3xl font-black text-slate-800 mb-4 uppercase tracking-tight">Practice Over!</h2>
+                        <p className="text-slate-600 text-lg mb-8 font-medium">You've completed the training. Are you ready for the actual timed test?</p>
+                        <button onClick={startActualTest} className="w-full bg-green-600 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-green-700 transition-all active:scale-95 text-xl">YES, START ACTUAL TEST</button>
                     </div>
                 </div>
             );
 
             if (appState === 'COUNTDOWN') return (
                 <div className="min-h-screen flex items-center justify-center flex-col">
-                    <h2 className="text-4xl font-black text-slate-400 mb-4 uppercase tracking-widest">Starting</h2>
+                    <h2 className="text-4xl font-black text-slate-400 mb-4 uppercase tracking-widest">Beginning Test</h2>
                     <div className="text-9xl font-black text-blue-600 animate-bounce">{countdown}</div>
                 </div>
             );
@@ -213,8 +216,8 @@
                 return (
                     <div className="min-h-screen flex flex-col items-center justify-center p-4 no-select w-full max-w-4xl mx-auto">
                         <div className="w-full flex justify-between items-center mb-6">
-                            <div className={`px-4 py-1 rounded-full text-xs font-bold ${appState === 'PRACTICE' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                                {appState === 'PRACTICE' ? `PRACTICE TRIAL ${stimuliIndex + 1}` : 'ACTUAL TEST'}
+                            <div className={`px-4 py-1 rounded-full text-xs font-bold shadow-sm ${appState === 'PRACTICE' ? 'bg-orange-100 text-orange-700 border border-orange-200' : 'bg-green-100 text-green-700 border border-green-200'}`}>
+                                {appState === 'PRACTICE' ? `PRACTICE: ${stimuliIndex + 1} / ${TRAINING_TRIALS}` : 'ACTUAL PERFORMANCE TEST'}
                             </div>
                             {appState === 'TESTING' && (
                                 <div className="text-2xl font-mono font-bold text-slate-700 bg-white px-4 py-1 rounded shadow-inner border border-slate-100">
@@ -245,13 +248,25 @@
 
             if (appState === 'FEEDBACK') {
                 const totalCorrect = results.filter(r => r.correct).length;
+                const totalTrials = results.length;
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4">
                         <div className="max-w-xl w-full bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 flex flex-col items-center">
-                            <h2 className="text-3xl font-black text-slate-800 mb-6">Experiment Finished</h2>
-                            <div className="text-6xl font-black text-blue-600 mb-8">{totalCorrect} Correct</div>
-                            <button onClick={downloadCSV} className="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl mb-4 transition-transform active:scale-95">DOWNLOAD CSV</button>
-                            <button onClick={() => window.location.reload()} className="w-full bg-slate-100 text-slate-800 font-bold py-4 rounded-xl">RESTART</button>
+                            <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">Experiment Finished</h2>
+                            <p className="text-slate-400 mb-8 font-medium">Great job! Here is your performance data.</p>
+                            
+                            <div className="flex items-center justify-center bg-blue-50 w-full p-6 rounded-2xl mb-8 border border-blue-100">
+                                <div className="text-center">
+                                    <div className="text-blue-600 text-6xl font-black leading-none">{totalCorrect}</div>
+                                    <div className="text-blue-400 font-bold uppercase text-xs mt-2">Correct Substitutions</div>
+                                </div>
+                            </div>
+
+                            <button onClick={downloadCSV} className="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl mb-4 transition-transform active:scale-95 shadow-lg flex items-center justify-center gap-2">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                DOWNLOAD CSV DATA
+                            </button>
+                            <button onClick={() => window.location.reload()} className="w-full bg-slate-100 text-slate-800 font-bold py-4 rounded-xl hover:bg-slate-200">RESTART EXPERIMENT</button>
                         </div>
                     </div>
                 );
