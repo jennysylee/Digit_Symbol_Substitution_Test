@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digit Symbol Substitution Test</title>
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React 18 -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel to handle JSX in the browser -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         body { 
@@ -20,11 +17,6 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
         }
         .no-select { user-select: none; }
-        @keyframes pulse-custom {
-            0%, 100% { opacity: 0.2; transform: scale(1); }
-            50% { opacity: 0.3; transform: scale(1.1); }
-        }
-        .animate-pulse-slow { animation: pulse-custom 3s infinite ease-in-out; }
     </style>
 <script type="importmap">
 {
@@ -42,8 +34,7 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- CONSTANTS ---
-        const TEST_DURATION = 120000; // 120 seconds
+        const TEST_DURATION = 120000; 
         const TRAINING_TRIALS = 3;
 
         const SYMBOLS = [
@@ -58,7 +49,6 @@
             (props) => <svg viewBox="0 0 100 100" className="w-full h-full" {...props}><rect x="20" y="40" width="60" height="20" rx="10" fill="none" stroke="currentColor" strokeWidth="8"/></svg>
         ];
 
-        // --- UTILS ---
         const shuffle = (array) => {
             const newArr = [...array];
             for (let i = newArr.length - 1; i > 0; i--) {
@@ -76,7 +66,6 @@
             return result;
         };
 
-        // --- COMPONENTS ---
         const DigitSymbolKey = ({ mapping }) => (
             <div className="flex justify-center gap-2 mb-8 bg-white p-4 rounded-xl shadow-md border-2 border-slate-200 overflow-x-auto">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => {
@@ -109,21 +98,15 @@
             const lastTrialTimeRef = useRef(0);
             const timerIntervalRef = useRef(null);
 
-            const resetApp = () => {
-                if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-                setResults([]);
-                setStimuliIndex(0);
-                setTimeLeft(TEST_DURATION / 1000);
-                setErrorFeedback(null);
-                setAppState('INSTRUCTIONS');
-            };
-
             const startSession = () => {
                 const digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-                const randomizedDigits = shuffle(digits);
-                setMapping(randomizedDigits);
+                setMapping(shuffle(digits));
                 setBottomSymbols(shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8]));
                 setStimuli(generateStimuli(500));
+                setAppState('PRACTICE');
+            };
+
+            const startActualTest = () => {
                 setAppState('COUNTDOWN');
                 setCountdown(5);
             };
@@ -148,32 +131,36 @@
                         const remaining = Math.max(0, (TEST_DURATION - elapsed) / 1000);
                         setTimeLeft(remaining);
                         if (remaining <= 0) {
-                            if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+                            clearInterval(timerIntervalRef.current);
                             setAppState('FEEDBACK');
                         }
                     }, 100);
-                    return () => { if (timerIntervalRef.current) clearInterval(timerIntervalRef.current); };
+                    return () => clearInterval(timerIntervalRef.current);
                 }
             }, [appState]);
 
             const handleSymbolClick = (symbolIdx) => {
-                if (appState !== 'TESTING') return;
                 const clickedDigit = mapping[symbolIdx];
                 const targetDigit = stimuli[stimuliIndex];
                 const now = Date.now();
-                const rt = now - lastTrialTimeRef.current;
+                const rt = now - (lastTrialTimeRef.current || now);
 
                 if (clickedDigit === targetDigit) {
-                    if (stimuliIndex >= TRAINING_TRIALS) {
+                    if (appState === 'TESTING') {
                         setResults(prev => [...prev, { digit: targetDigit, rt, correct: true, timestamp: now }]);
                     }
-                    setStimuliIndex(prev => prev + 1);
+                    
+                    const nextIndex = stimuliIndex + 1;
+                    if (appState === 'PRACTICE' && nextIndex >= TRAINING_TRIALS) {
+                        setAppState('TRANSITION');
+                    }
+                    setStimuliIndex(nextIndex);
                     lastTrialTimeRef.current = now;
                     setErrorFeedback(null);
                 } else {
                     setErrorFeedback(symbolIdx);
                     setTimeout(() => setErrorFeedback(null), 500);
-                    if (stimuliIndex >= TRAINING_TRIALS) {
+                    if (appState === 'TESTING') {
                         setResults(prev => [...prev, { digit: targetDigit, rt, correct: false, timestamp: now }]);
                     }
                 }
@@ -193,59 +180,60 @@
 
             if (appState === 'INSTRUCTIONS') return (
                 <div className="min-h-screen flex items-center justify-center p-4">
-                    <div className="max-w-2xl bg-white p-8 rounded-2xl shadow-2xl border border-slate-200">
-                        <h1 className="text-3xl font-black text-slate-800 mb-6 text-center">Digit Symbol Substitution Test</h1>
-                        <div className="space-y-4 text-slate-600 text-lg leading-relaxed">
-                            <p>A cognitive test of processing speed and association.</p>
-                            <ul className="list-disc list-inside space-y-2">
-                                <li>Top Key: Match <strong>Digits</strong> to <strong>Symbols</strong>.</li>
-                                <li>Middle Box: Your current <strong>Target Digit</strong>.</li>
-                                <li>Bottom Grid: Click the <strong>Matching Symbol</strong>.</li>
-                            </ul>
-                            <p className="italic bg-yellow-50 p-3 rounded-lg border border-yellow-100 text-yellow-800 text-sm">The first {TRAINING_TRIALS} trials are practice.</p>
+                    <div className="max-w-xl bg-white p-8 rounded-2xl shadow-2xl border border-slate-200">
+                        <h1 className="text-3xl font-black text-slate-800 mb-6 text-center">Digit Symbol Substitution</h1>
+                        <p className="text-slate-600 text-lg mb-6">Match the symbols to the digits as quickly as possible. We will start with <strong>{TRAINING_TRIALS} practice trials</strong>.</p>
+                        <button onClick={startSession} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95">START PRACTICE</button>
+                    </div>
+                </div>
+            );
+
+            if (appState === 'TRANSITION') return (
+                <div className="min-h-screen flex items-center justify-center p-4 text-center">
+                    <div className="max-w-md bg-white p-10 rounded-3xl shadow-2xl border border-blue-100">
+                        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                         </div>
-                        <button onClick={startSession} className="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg transition-transform active:scale-95">START EXPERIMENT</button>
+                        <h2 className="text-3xl font-black text-slate-800 mb-4">Practice Complete!</h2>
+                        <p className="text-slate-600 text-lg mb-8">The practice trials are over. Are you ready for the actual test? It will last for 2 minutes.</p>
+                        <button onClick={startActualTest} className="w-full bg-green-600 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-green-700 transition-all active:scale-95 text-xl tracking-tight">START ACTUAL TEST</button>
                     </div>
                 </div>
             );
 
             if (appState === 'COUNTDOWN') return (
                 <div className="min-h-screen flex items-center justify-center flex-col">
-                    <h2 className="text-4xl font-black text-slate-400 mb-4 uppercase tracking-widest">Get Ready</h2>
+                    <h2 className="text-4xl font-black text-slate-400 mb-4 uppercase tracking-widest">Starting</h2>
                     <div className="text-9xl font-black text-blue-600 animate-bounce">{countdown}</div>
                 </div>
             );
 
-            if (appState === 'TESTING') {
-                const isTraining = stimuliIndex < TRAINING_TRIALS;
+            if (appState === 'PRACTICE' || appState === 'TESTING') {
                 const targetDigit = stimuli[stimuliIndex];
                 return (
                     <div className="min-h-screen flex flex-col items-center justify-center p-4 no-select w-full max-w-4xl mx-auto">
                         <div className="w-full flex justify-between items-center mb-6">
-                            <div className={`px-4 py-1 rounded-full text-xs font-bold ${isTraining ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                                {isTraining ? 'PRACTICE MODE' : 'TESTING'}
+                            <div className={`px-4 py-1 rounded-full text-xs font-bold ${appState === 'PRACTICE' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                                {appState === 'PRACTICE' ? `PRACTICE TRIAL ${stimuliIndex + 1}` : 'ACTUAL TEST'}
                             </div>
-                            <div className="text-2xl font-mono font-bold text-slate-700 bg-white px-4 py-1 rounded shadow-inner border border-slate-100">
-                                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toFixed(1).padStart(4, '0')}
-                            </div>
+                            {appState === 'TESTING' && (
+                                <div className="text-2xl font-mono font-bold text-slate-700 bg-white px-4 py-1 rounded shadow-inner border border-slate-100">
+                                    {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toFixed(1).padStart(4, '0')}
+                                </div>
+                            )}
                         </div>
-
                         <DigitSymbolKey mapping={mapping} />
-
                         <div className="relative w-full h-40 flex items-center justify-center bg-white rounded-2xl shadow-inner border-4 border-slate-50 mb-10">
                             <div className="relative w-24 h-24 bg-yellow-50 border-4 border-yellow-400 rounded-2xl flex items-center justify-center shadow-md">
                                 <span className="text-5xl font-black text-yellow-900">{targetDigit}</span>
                             </div>
                         </div>
-
                         <div className="grid grid-cols-3 sm:grid-cols-9 gap-4 w-full">
                             {bottomSymbols.map((sIdx) => {
                                 const SymbolComp = SYMBOLS[sIdx];
                                 return (
                                     <button key={sIdx} onClick={() => handleSymbolClick(sIdx)} className={`relative aspect-square rounded-xl flex items-center justify-center p-3 shadow-md transition-all border-2 ${errorFeedback === sIdx ? 'bg-red-500 border-red-600 scale-95' : 'bg-white border-white hover:border-blue-400 active:scale-90'}`}>
-                                        <div className={errorFeedback === sIdx ? 'text-white' : 'text-slate-700'}>
-                                            <SymbolComp />
-                                        </div>
+                                        <div className={errorFeedback === sIdx ? 'text-white' : 'text-slate-700'}><SymbolComp /></div>
                                         {errorFeedback === sIdx && <div className="absolute inset-0 flex items-center justify-center text-white text-4xl font-bold">✕</div>}
                                     </button>
                                 );
@@ -257,23 +245,13 @@
 
             if (appState === 'FEEDBACK') {
                 const totalCorrect = results.filter(r => r.correct).length;
-                const avgRT = results.length > 0 ? Math.round(results.reduce((acc, r) => acc + r.rt, 0) / results.length) : 0;
                 return (
                     <div className="min-h-screen flex items-center justify-center p-4">
                         <div className="max-w-xl w-full bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 flex flex-col items-center">
                             <h2 className="text-3xl font-black text-slate-800 mb-6">Experiment Finished</h2>
-                            <div className="grid grid-cols-2 gap-4 w-full mb-8">
-                                <div className="bg-blue-50 p-4 rounded-xl text-center">
-                                    <div className="text-blue-400 text-xs font-bold uppercase">Correct</div>
-                                    <div className="text-3xl font-black text-blue-700">{totalCorrect}</div>
-                                </div>
-                                <div className="bg-slate-50 p-4 rounded-xl text-center">
-                                    <div className="text-slate-400 text-xs font-bold uppercase">Avg Speed</div>
-                                    <div className="text-3xl font-black text-slate-700">{avgRT}ms</div>
-                                </div>
-                            </div>
-                            <button onClick={downloadCSV} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl mb-4 shadow-lg transition-transform active:scale-95">DOWNLOAD DATA (.CSV)</button>
-                            <button onClick={resetApp} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-4 rounded-xl">RESTART</button>
+                            <div className="text-6xl font-black text-blue-600 mb-8">{totalCorrect} Correct</div>
+                            <button onClick={downloadCSV} className="w-full bg-emerald-600 text-white font-bold py-4 rounded-xl mb-4 transition-transform active:scale-95">DOWNLOAD CSV</button>
+                            <button onClick={() => window.location.reload()} className="w-full bg-slate-100 text-slate-800 font-bold py-4 rounded-xl">RESTART</button>
                         </div>
                     </div>
                 );
